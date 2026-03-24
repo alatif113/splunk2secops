@@ -6,7 +6,7 @@ import time
 
 from secops import SecOpsClient
 
-def get_splunk_logs(base_url, token, index, sourcetype, earliest, latest):
+def get_splunk_logs(base_url, token, index, sourcetype, earliest, latest, timeout):
     url = base_url.rstrip("/") + "/services/search/jobs/export"
     headers = {"Authorization": f"Splunk {token}"}
 
@@ -23,7 +23,7 @@ def get_splunk_logs(base_url, token, index, sourcetype, earliest, latest):
             "count": 0,                  # all results
         },
         stream=True,
-        timeout=120,
+        timeout=timeout,
         verify=False,
     )
     resp.raise_for_status()
@@ -67,6 +67,7 @@ def main():
     p.add_argument("--credentials-path", required=True)  # path to service account credentials
 
     # Optional
+    p.add_argument("--splunk-timeout", type=int, default=500)
     p.add_argument("--batch-size", type=int, default=200)
     p.add_argument("--sleep-seconds", type=float, default=0.0)
 
@@ -75,7 +76,7 @@ def main():
     client = SecOpsClient(service_account_path=args.credentials_path)
     chronicle = client.chronicle(customer_id=args.customer_id, project_id=args.project_id, region=args.region)
 
-    raw = get_splunk_logs(args.base_url, args.token, args.index, args.sourcetype, args.earliest, args.latest)
+    raw = get_splunk_logs(args.base_url, args.token, args.index, args.sourcetype, args.earliest, args.latest, args.timeout)
     sent = 0
     for batch in chunk(raw, args.batch_size):
         ingest_to_secops(chronicle, args.log_type, batch)

@@ -46,8 +46,8 @@ def chunk(items, batch_size):
     if buf:
         yield buf
 
-def ingest_to_secops(chronicle_client, log_type, batch):
-    chronicle_client.ingest_log(log_type=log_type, log_message=batch)
+def ingest_to_secops(chronicle_client, log_type, namespace, batch):
+    chronicle_client.ingest_log(log_type=log_type, namespace=namespace, log_message=batch)
 
 def main():
     p = argparse.ArgumentParser()
@@ -79,7 +79,8 @@ def main():
     raw = get_splunk_logs(args.base_url, args.token, args.index, args.sourcetype, args.earliest, args.latest, args.timeout)
     sent = 0
     for batch in chunk(raw, args.batch_size):
-        ingest_to_secops(chronicle, args.log_type, batch)
+        namespace = f"index={args.index} sourcetype={args.sourcetype}"
+        ingest_to_secops(chronicle, args.log_type, namespace, batch)
         sent += len(batch)
         if args.sleep_seconds:
             time.sleep(args.sleep_seconds)
